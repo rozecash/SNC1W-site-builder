@@ -32,6 +32,15 @@ body {
     linear-gradient(180deg, #f8fbfa 0%, #f2f5f3 100%);
 }
 
+button {
+  touch-action: manipulation;
+}
+
+button:focus-visible {
+  outline: 2px solid #14b8a6;
+  outline-offset: 2px;
+}
+
 .icon-svg {
   width: 1.15rem;
   height: 1.15rem;
@@ -345,10 +354,54 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(290px, 360px);
   gap: 1rem;
   align-items: start;
+  position: relative;
+}
+
+.process-layout.map-open .detail-panel {
+  opacity: 0.24;
+  pointer-events: none;
+  transform: scale(0.98);
+  filter: blur(1.2px);
+}
+
+.space-backdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgba(6, 18, 31, 0.55);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 440ms ease;
+  z-index: 100;
+}
+
+.space-backdrop.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.space-map-shell {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.space-map-shell.is-fullscreen {
+  position: fixed;
+  inset: clamp(0.65rem, 1.7vw, 1.35rem);
+  z-index: 110;
 }
 
 .space-diagram {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  view-transition-name: space-map;
   border: 1px solid #d6e5df;
   border-radius: 24px;
   padding: 0.85rem 0.9rem 0.95rem;
@@ -359,6 +412,18 @@ body {
   );
   box-shadow: 0 12px 32px rgba(16, 47, 52, 0.1);
   overflow: hidden;
+  transition:
+    border-radius 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.space-diagram.is-fullscreen {
+  height: 100%;
+  min-height: 100%;
+  border-radius: 30px;
+  padding: 1rem 1.08rem 1.15rem;
+  box-shadow: 0 24px 70px rgba(4, 13, 28, 0.5);
 }
 
 .space-diagram::before {
@@ -385,7 +450,7 @@ body {
 .space-viewport {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 100 / 56;
   border-radius: 20px;
   border: 1px solid rgba(149, 182, 209, 0.38);
   background:
@@ -393,17 +458,30 @@ body {
     radial-gradient(circle at 76% 12%, rgba(16, 185, 129, 0.22) 0%, transparent 36%),
     linear-gradient(160deg, #071527 0%, #0b2238 47%, #0f2f44 100%);
   overflow: hidden;
+  isolation: isolate;
+}
+
+.space-map-shell.is-fullscreen .space-viewport {
+  flex: 1;
+  width: min(100%, calc((100vh - 9.2rem) * 1.785714));
+  max-height: calc(100vh - 9.2rem);
+  margin-inline: auto;
 }
 
 .space-canvas {
   position: relative;
   width: 100%;
   height: 100%;
+  --map-scale: 1.03;
   transform-origin: var(--focus-x) var(--focus-y);
-  transform: scale(1.12);
+  transform: scale(var(--map-scale));
   transition:
     transform 760ms cubic-bezier(0.22, 1, 0.36, 1),
     transform-origin 760ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.space-map-shell.is-fullscreen .space-canvas {
+  --map-scale: 1.17;
 }
 
 .space-canvas::before {
@@ -465,25 +543,25 @@ body {
 
 .space-link-base {
   fill: none;
-  stroke: rgba(180, 212, 232, 0.3);
-  stroke-width: 0.82;
+  stroke: rgba(170, 209, 232, 0.3);
+  stroke-width: 0.78;
 }
 
 .space-link-progress {
   fill: none;
   stroke: url(#spaceLinkGradient);
-  stroke-width: 1.42;
+  stroke-width: 1.2;
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: stroke-dasharray 620ms cubic-bezier(0.22, 1, 0.36, 1);
-  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.5));
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.54));
 }
 
 .space-tracker-dot {
-  fill: #f8feff;
+  fill: #ffffff;
   stroke: #67e8f9;
-  stroke-width: 1.45;
-  filter: drop-shadow(0 0 6px rgba(103, 232, 249, 0.7));
+  stroke-width: 1.2;
+  filter: drop-shadow(0 0 7px rgba(103, 232, 249, 0.74));
   transition:
     cx 460ms cubic-bezier(0.22, 1, 0.36, 1),
     cy 460ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -492,7 +570,7 @@ body {
 .space-tracker-pulse {
   fill: rgba(56, 189, 248, 0.16);
   stroke: rgba(56, 189, 248, 0.44);
-  stroke-width: 0.74;
+  stroke-width: 0.62;
   animation: tracker-pulse 1.9s ease-in-out infinite;
   transition:
     cx 460ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -510,11 +588,14 @@ body {
   transform: translate(-50%, -50%);
   z-index: 3;
   animation: rise 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    left 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 620ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .space-node {
-  width: clamp(8rem, 13vw, 10.9rem);
-  min-height: 7.2rem;
+  width: clamp(7.4rem, 11.3vw, 10rem);
+  min-height: 6.8rem;
   border: 1px solid rgba(121, 175, 208, 0.46);
   background: linear-gradient(
     180deg,
@@ -523,7 +604,7 @@ body {
   );
   color: #ebf8ff;
   border-radius: 16px;
-  padding: 0.5rem 0.62rem 0.64rem;
+  padding: 0.48rem 0.58rem 0.58rem;
   text-align: left;
   cursor: pointer;
   box-shadow: 0 12px 24px rgba(3, 10, 24, 0.5);
@@ -549,6 +630,11 @@ body {
     rgba(16, 50, 73, 0.9) 0%,
     rgba(9, 35, 56, 0.95) 100%
   );
+}
+
+.space-map-shell.is-fullscreen .space-node {
+  width: clamp(9rem, 13vw, 13rem);
+  min-height: clamp(7.2rem, 11vh, 9.5rem);
 }
 
 .space-node.done {
@@ -593,7 +679,7 @@ body {
 .space-node h3 {
   margin: 0 0 0.25rem;
   font-family: var(--font-fraunces), Georgia, serif;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   line-height: 1.22;
   color: #f0fbff;
 }
@@ -601,8 +687,8 @@ body {
 .space-node p {
   margin: 0;
   color: #b9d5e7;
-  font-size: 0.68rem;
-  line-height: 1.34;
+  font-size: 0.66rem;
+  line-height: 1.32;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -616,8 +702,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.8rem;
-  margin-bottom: 0.8rem;
+  gap: 0.68rem;
+}
+
+.diagram-label-group {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .diagram-chip {
@@ -640,15 +731,51 @@ body {
   line-height: 1.35;
 }
 
+.map-mode-btn {
+  border: 1px solid #bfd8cf;
+  border-radius: 999px;
+  padding: 0.35rem 0.62rem;
+  background: rgba(247, 255, 252, 0.92);
+  color: #114842;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  font-family: var(--font-jet-mono), monospace;
+  font-size: 0.69rem;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 240ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease;
+}
+
+.map-mode-btn:hover {
+  transform: translateY(-2px);
+  border-color: #95c7ba;
+  background: #f1fdf8;
+}
+
+.mode-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  display: block;
+}
+
 .detail-panel {
   position: sticky;
   top: 1rem;
   border: 1px solid var(--line);
   border-radius: 22px;
-  background: var(--surface-strong);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fcfa 100%);
   padding: 1.2rem 1.15rem;
   box-shadow: var(--shadow-soft);
   animation: panel-in 580ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    opacity 320ms ease,
+    transform 320ms ease,
+    filter 320ms ease;
 }
 
 .detail-kicker {
@@ -823,6 +950,14 @@ body {
   background: rgba(255, 255, 255, 0.75);
   position: relative;
   overflow: hidden;
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 300ms ease;
+}
+
+.compare-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(20, 40, 44, 0.1);
 }
 
 .compare-card::before {
@@ -940,13 +1075,15 @@ body {
   }
 }
 
+::view-transition-old(space-map),
+::view-transition-new(space-map) {
+  animation-duration: 540ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (max-width: 1024px) {
   .hero-grid {
     grid-template-columns: 1fr;
-  }
-
-  .space-canvas {
-    transform: scale(1.08);
   }
 
   .process-layout {
@@ -969,26 +1106,37 @@ body {
     gap: 0.35rem;
   }
 
-  .space-viewport {
-    height: 430px;
-    aspect-ratio: auto;
-    overflow: auto;
+  .map-mode-btn span {
+    display: none;
   }
 
   .space-canvas {
-    width: 760px;
-    height: 430px;
-    transform: scale(1);
-    transform-origin: 50% 50%;
+    --map-scale: 1;
   }
 
   .space-focus {
-    width: 10.5rem;
+    width: 8.9rem;
   }
 
   .space-node {
-    width: 8.2rem;
-    min-height: 7rem;
+    width: clamp(5.3rem, 20vw, 6.6rem);
+    min-height: 4.9rem;
+    padding: 0.34rem 0.38rem 0.42rem;
+  }
+
+  .space-map-shell.is-fullscreen .space-node {
+    width: clamp(6.9rem, 19vw, 8.2rem);
+    min-height: 5.8rem;
+  }
+
+  .space-node h3 {
+    font-size: 0.69rem;
+  }
+
+  .space-node p {
+    font-size: 0.58rem;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
   }
 
   .examples {

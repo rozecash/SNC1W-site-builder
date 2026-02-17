@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 type ProcessId = "engineering" | "scientific";
@@ -320,19 +320,33 @@ function Icon({ name }: { name: IconName }) {
 export default function Home() {
   const [activeProcess, setActiveProcess] = useState<ProcessId>("engineering");
   const [activeStep, setActiveStep] = useState(0);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
 
   const currentProcess = processData[activeProcess];
   const step = currentProcess.steps[activeStep];
-  const diagramPoints = [
-    { x: 11, y: 28 },
-    { x: 29, y: 16 },
-    { x: 48, y: 24 },
-    { x: 69, y: 14 },
-    { x: 87, y: 32 },
-    { x: 76, y: 59 },
-    { x: 54, y: 74 },
-    { x: 30, y: 64 },
+  const mapHeight = 56;
+  const normalPoints = [
+    { x: 14, y: 30 },
+    { x: 28, y: 13 },
+    { x: 45, y: 18 },
+    { x: 66, y: 9 },
+    { x: 84, y: 25 },
+    { x: 79, y: 43 },
+    { x: 60, y: 54 },
+    { x: 34, y: 49 },
   ] as const;
+  const expandedPoints = [
+    { x: 11, y: 31 },
+    { x: 24, y: 11 },
+    { x: 42, y: 16 },
+    { x: 65, y: 7 },
+    { x: 89, y: 23 },
+    { x: 83, y: 44 },
+    { x: 62, y: 55 },
+    { x: 31, y: 50 },
+  ] as const;
+  const diagramPoints = isMapExpanded ? expandedPoints : normalPoints;
+  const getTopPercent = (y: number) => (y / mapHeight) * 100;
   const spacePath = diagramPoints
     .map((point, index) =>
       index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`,
@@ -348,12 +362,52 @@ export default function Home() {
   const trackerPoint = diagramPoints[activeStep] ?? diagramPoints[0];
   const mapFocus = {
     "--focus-x": `${trackerPoint.x}%`,
-    "--focus-y": `${trackerPoint.y}%`,
+    "--focus-y": `${getTopPercent(trackerPoint.y)}%`,
   } as CSSProperties;
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    if (isMapExpanded) {
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMapExpanded]);
+
+  useEffect(() => {
+    if (!isMapExpanded) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMapExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isMapExpanded]);
 
   const handleProcessSelect = (nextProcess: ProcessId) => {
     setActiveProcess(nextProcess);
     setActiveStep(0);
+  };
+
+  const setMapExpandedWithTransition = (nextState: boolean) => {
+    const transitionDocument = document as Document & {
+      startViewTransition?: (updateCallback: () => void) => void;
+    };
+    if (transitionDocument.startViewTransition) {
+      transitionDocument.startViewTransition(() => {
+        setIsMapExpanded(nextState);
+      });
+      return;
+    }
+    setIsMapExpanded(nextState);
+  };
+
+  const toggleMapExpanded = () => {
+    setMapExpandedWithTransition(!isMapExpanded);
   };
 
   const moveStep = (direction: -1 | 1) => {
@@ -445,86 +499,139 @@ export default function Home() {
         })}
       </section>
 
-      <section className="process-layout">
-        <div className="space-diagram">
-          <div className="diagram-label">
-            <span className="diagram-chip">{currentProcess.badge}</span>
-            <p>Space map: all steps connect in one path.</p>
-          </div>
-          <div className="space-viewport">
-            <div className="space-canvas" style={mapFocus}>
-              <span
-                className="space-focus"
-                style={{ left: `${trackerPoint.x}%`, top: `${trackerPoint.y}%` }}
-              />
-              <svg
-                className="space-links"
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <defs>
-                  <linearGradient id="spaceLinkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#34d399" />
-                    <stop offset="52%" stopColor="#22d3ee" />
-                    <stop offset="100%" stopColor="#60a5fa" />
-                  </linearGradient>
-                </defs>
-                <path className="space-link-base" d={spacePath} pathLength={100} />
-                <path
-                  className="space-link-progress"
-                  d={spacePath}
-                  pathLength={100}
-                  style={{ strokeDasharray: `${lineProgress} 100` }}
-                />
-                <circle
-                  className="space-tracker-pulse"
-                  cx={trackerPoint.x}
-                  cy={trackerPoint.y}
-                  r="4.3"
-                />
-                <circle
-                  className="space-tracker-dot"
-                  cx={trackerPoint.x}
-                  cy={trackerPoint.y}
-                  r="2.15"
-                />
-              </svg>
-              <ol className="space-nodes">
-                {currentProcess.steps.map((item, index) => {
-                  const isActive = activeStep === index;
-                  const isDone = index < activeStep;
-                  const placement = diagramPoints[index] ?? { x: 10, y: 10 };
+      <section className={`process-layout ${isMapExpanded ? "map-open" : ""}`}>
+        <button
+          type="button"
+          className={`space-backdrop ${isMapExpanded ? "active" : ""}`}
+          onClick={() => setMapExpandedWithTransition(false)}
+          aria-label="Close full screen map"
+          tabIndex={isMapExpanded ? 0 : -1}
+        />
 
-                  return (
-                    <li
-                      key={item.title}
-                      className="space-node-wrap"
-                      style={{
-                        left: `${placement.x}%`,
-                        top: `${placement.y}%`,
-                        animationDelay: `${index * 75}ms`,
-                      }}
-                    >
-                      <button
-                        type="button"
-                        className={`space-node ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}
-                        onClick={() => setActiveStep(index)}
-                        aria-pressed={isActive}
+        <div className={`space-map-shell ${isMapExpanded ? "is-fullscreen" : ""}`}>
+          <div className={`space-diagram ${isMapExpanded ? "is-fullscreen" : ""}`}>
+            <div className="diagram-label">
+              <div className="diagram-label-group">
+                <span className="diagram-chip">{currentProcess.badge}</span>
+                <p>Space map: all steps connect in one path.</p>
+              </div>
+              <button
+                type="button"
+                className="map-mode-btn"
+                onClick={toggleMapExpanded}
+                aria-label={
+                  isMapExpanded
+                    ? "Exit full screen space map"
+                    : "Open full screen space map"
+                }
+              >
+                <svg
+                  className="mode-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  {isMapExpanded ? (
+                    <path
+                      d="M10 4H4v6M14 4h6v6M10 20H4v-6M14 20h6v-6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  ) : (
+                    <path
+                      d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
+                </svg>
+                <span>{isMapExpanded ? "Exit full screen" : "Full screen"}</span>
+              </button>
+            </div>
+            <div className="space-viewport">
+              <div className="space-canvas" style={mapFocus}>
+                <span
+                  className="space-focus"
+                  style={{
+                    left: `${trackerPoint.x}%`,
+                    top: `${getTopPercent(trackerPoint.y)}%`,
+                  }}
+                />
+                <svg
+                  className="space-links"
+                  viewBox="0 0 100 56"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient id="spaceLinkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#34d399" />
+                      <stop offset="52%" stopColor="#22d3ee" />
+                      <stop offset="100%" stopColor="#60a5fa" />
+                    </linearGradient>
+                  </defs>
+                  <path className="space-link-base" d={spacePath} pathLength={100} />
+                  <path
+                    className="space-link-progress"
+                    d={spacePath}
+                    pathLength={100}
+                    style={{ strokeDasharray: `${lineProgress} 100` }}
+                  />
+                  <circle
+                    className="space-tracker-pulse"
+                    cx={trackerPoint.x}
+                    cy={trackerPoint.y}
+                    r="4.3"
+                  />
+                  <circle
+                    className="space-tracker-dot"
+                    cx={trackerPoint.x}
+                    cy={trackerPoint.y}
+                    r="2.15"
+                  />
+                </svg>
+                <ol className="space-nodes">
+                  {currentProcess.steps.map((item, index) => {
+                    const isActive = activeStep === index;
+                    const isDone = index < activeStep;
+                    const placement = diagramPoints[index] ?? { x: 10, y: 10 };
+
+                    return (
+                      <li
+                        key={item.title}
+                        className="space-node-wrap"
+                        style={{
+                          left: `${placement.x}%`,
+                          top: `${getTopPercent(placement.y)}%`,
+                          animationDelay: `${index * 75}ms`,
+                        }}
                       >
-                        <span className="space-node-head">
-                          <span className="node-number">{index + 1}</span>
-                          <span className="node-icon">
-                            <Icon name={item.icon} />
+                        <button
+                          type="button"
+                          className={`space-node ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}
+                          onClick={() => setActiveStep(index)}
+                          aria-pressed={isActive}
+                        >
+                          <span className="space-node-head">
+                            <span className="node-number">{index + 1}</span>
+                            <span className="node-icon">
+                              <Icon name={item.icon} />
+                            </span>
                           </span>
-                        </span>
-                        <h3>{item.title}</h3>
-                        <p>{item.detail}</p>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
+                          <h3>{item.title}</h3>
+                          <p>{item.detail}</p>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
             </div>
           </div>
         </div>
