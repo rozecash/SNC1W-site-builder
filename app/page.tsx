@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 type ProcessId = "engineering" | "scientific";
 type IconName =
@@ -324,15 +324,20 @@ export default function Home() {
   const currentProcess = processData[activeProcess];
   const step = currentProcess.steps[activeStep];
   const diagramPoints = [
-    { x: 12, y: 28, col: 1, row: 1 },
-    { x: 37, y: 28, col: 2, row: 1 },
-    { x: 62, y: 28, col: 3, row: 1 },
-    { x: 87, y: 28, col: 4, row: 1 },
-    { x: 87, y: 72, col: 4, row: 2 },
-    { x: 62, y: 72, col: 3, row: 2 },
-    { x: 37, y: 72, col: 2, row: 2 },
-    { x: 12, y: 72, col: 1, row: 2 },
+    { x: 11, y: 28 },
+    { x: 29, y: 16 },
+    { x: 48, y: 24 },
+    { x: 69, y: 14 },
+    { x: 87, y: 32 },
+    { x: 76, y: 59 },
+    { x: 54, y: 74 },
+    { x: 30, y: 64 },
   ] as const;
+  const spacePath = diagramPoints
+    .map((point, index) =>
+      index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`,
+    )
+    .join(" ");
   const progress = Math.round(
     ((activeStep + 1) / currentProcess.steps.length) * 100,
   );
@@ -341,6 +346,10 @@ export default function Home() {
       ? (activeStep / (currentProcess.steps.length - 1)) * 100
       : 0;
   const trackerPoint = diagramPoints[activeStep] ?? diagramPoints[0];
+  const mapFocus = {
+    "--focus-x": `${trackerPoint.x}%`,
+    "--focus-y": `${trackerPoint.y}%`,
+  } as CSSProperties;
 
   const handleProcessSelect = (nextProcess: ProcessId) => {
     setActiveProcess(nextProcess);
@@ -437,82 +446,87 @@ export default function Home() {
       </section>
 
       <section className="process-layout">
-        <div className="step-diagram">
+        <div className="space-diagram">
           <div className="diagram-label">
             <span className="diagram-chip">{currentProcess.badge}</span>
-            <p>Click any node to jump to that step.</p>
+            <p>Space map: all steps connect in one path.</p>
           </div>
-          <svg
-            className="diagram-lines"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <path
-              className="diagram-line-base"
-              d="M12 28 L37 28 L62 28 L87 28 L87 72 L62 72 L37 72 L12 72"
-              pathLength={100}
-            />
-            <path
-              className="diagram-line-progress"
-              d="M12 28 L37 28 L62 28 L87 28 L87 72 L62 72 L37 72 L12 72"
-              pathLength={100}
-              style={{ strokeDasharray: `${lineProgress} 100` }}
-            />
-            <circle
-              className="diagram-tracker-pulse"
-              cx={trackerPoint.x}
-              cy={trackerPoint.y}
-              r="4"
-            />
-            <circle
-              className="diagram-tracker-dot"
-              cx={trackerPoint.x}
-              cy={trackerPoint.y}
-              r="2.1"
-            />
-          </svg>
-          <ol className="step-grid diagram-grid">
-          {currentProcess.steps.map((item, index) => {
-            const isActive = activeStep === index;
-            const isDone = index < activeStep;
-            const placement = diagramPoints[index] ?? {
-              x: 12,
-              y: 28,
-              col: (index % 4) + 1,
-              row: Math.floor(index / 4) + 1,
-            };
-
-            return (
-              <li
-                key={item.title}
-                style={{
-                  gridColumn: placement.col,
-                  gridRow: placement.row,
-                  animationDelay: `${index * 80}ms`,
-                }}
+          <div className="space-viewport">
+            <div className="space-canvas" style={mapFocus}>
+              <span
+                className="space-focus"
+                style={{ left: `${trackerPoint.x}%`, top: `${trackerPoint.y}%` }}
+              />
+              <svg
+                className="space-links"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-hidden="true"
               >
-                <button
-                  type="button"
-                  className={`step-card ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}
-                  onClick={() => setActiveStep(index)}
-                  aria-pressed={isActive}
-                >
-                  <span className="step-icon">
-                    <Icon name={item.icon} />
-                  </span>
-                  <span className="step-content">
-                    <span className="step-topline">
-                      <span className="step-number">{index + 1}</span>
-                    </span>
-                    <h3>{item.title}</h3>
-                    <p>{item.detail}</p>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-          </ol>
+                <defs>
+                  <linearGradient id="spaceLinkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="52%" stopColor="#22d3ee" />
+                    <stop offset="100%" stopColor="#60a5fa" />
+                  </linearGradient>
+                </defs>
+                <path className="space-link-base" d={spacePath} pathLength={100} />
+                <path
+                  className="space-link-progress"
+                  d={spacePath}
+                  pathLength={100}
+                  style={{ strokeDasharray: `${lineProgress} 100` }}
+                />
+                <circle
+                  className="space-tracker-pulse"
+                  cx={trackerPoint.x}
+                  cy={trackerPoint.y}
+                  r="4.3"
+                />
+                <circle
+                  className="space-tracker-dot"
+                  cx={trackerPoint.x}
+                  cy={trackerPoint.y}
+                  r="2.15"
+                />
+              </svg>
+              <ol className="space-nodes">
+                {currentProcess.steps.map((item, index) => {
+                  const isActive = activeStep === index;
+                  const isDone = index < activeStep;
+                  const placement = diagramPoints[index] ?? { x: 10, y: 10 };
+
+                  return (
+                    <li
+                      key={item.title}
+                      className="space-node-wrap"
+                      style={{
+                        left: `${placement.x}%`,
+                        top: `${placement.y}%`,
+                        animationDelay: `${index * 75}ms`,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className={`space-node ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}
+                        onClick={() => setActiveStep(index)}
+                        aria-pressed={isActive}
+                      >
+                        <span className="space-node-head">
+                          <span className="node-number">{index + 1}</span>
+                          <span className="node-icon">
+                            <Icon name={item.icon} />
+                          </span>
+                        </span>
+                        <h3>{item.title}</h3>
+                        <p>{item.detail}</p>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          </div>
         </div>
 
         <article className="detail-panel" key={`${activeProcess}-${activeStep}`}>
