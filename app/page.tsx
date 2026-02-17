@@ -1,12 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type {
-  CSSProperties,
-  PointerEvent as ReactPointerEvent,
-  ReactNode,
-  WheelEvent as ReactWheelEvent,
-} from "react";
+import { useEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 type ProcessId = "engineering" | "scientific";
 type IconName =
@@ -181,13 +176,6 @@ const processData: Record<ProcessId, ProcessContent> = {
 };
 
 const processOrder: ProcessId[] = ["engineering", "scientific"];
-const MIN_MAP_ZOOM = 0.58;
-const MAX_MAP_ZOOM = 1.36;
-const INITIAL_MAP_ZOOM = 0.72;
-const ZOOM_STEP = 0.1;
-
-const clampValue = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
 
 function Icon({ name }: { name: IconName }) {
   const sharedProps = {
@@ -333,32 +321,19 @@ export default function Home() {
   const [activeProcess, setActiveProcess] = useState<ProcessId>("engineering");
   const [activeStep, setActiveStep] = useState(0);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
-  const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
-  const [mapZoom, setMapZoom] = useState(INITIAL_MAP_ZOOM);
-  const [mapPan, setMapPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const mapShellRef = useRef<HTMLDivElement | null>(null);
-  const panStartRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    startPanX: number;
-    startPanY: number;
-  } | null>(null);
 
   const currentProcess = processData[activeProcess];
   const step = currentProcess.steps[activeStep];
   const mapHeight = 60;
   const diagramPoints = [
-    { x: 8, y: 35 },
-    { x: 22, y: 11 },
-    { x: 42, y: 17 },
-    { x: 68, y: 8 },
-    { x: 92, y: 24 },
-    { x: 86, y: 48 },
-    { x: 63, y: 58 },
-    { x: 31, y: 52 },
+    { x: 15, y: 33 },
+    { x: 30, y: 15 },
+    { x: 50, y: 12 },
+    { x: 70, y: 17 },
+    { x: 85, y: 33 },
+    { x: 72, y: 49 },
+    { x: 50, y: 55 },
+    { x: 28, y: 49 },
   ] as const;
   const getTopPercent = (y: number) => (y / mapHeight) * 100;
   const spacePath = diagramPoints
@@ -374,159 +349,22 @@ export default function Home() {
       ? (activeStep / (currentProcess.steps.length - 1)) * 100
       : 0;
   const trackerPoint = diagramPoints[activeStep] ?? diagramPoints[0];
-  const mapTransformStyle = {
-    "--map-translate-x": `${mapPan.x}px`,
-    "--map-translate-y": `${mapPan.y}px`,
-    "--map-scale": `${mapZoom}`,
+  const mapViewStyle = {
+    "--map-scale": isMapExpanded ? "0.8" : "0.78",
   } as CSSProperties;
-
-  const clampPanToViewport = (
-    nextPan: { x: number; y: number },
-    zoomValue: number,
-  ) => {
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      return nextPan;
-    }
-    const width = viewport.clientWidth;
-    const height = viewport.clientHeight;
-    const limitX = Math.max(74, width * (zoomValue > 1 ? zoomValue - 0.08 : 0.2));
-    const limitY = Math.max(56, height * (zoomValue > 1 ? zoomValue - 0.08 : 0.2));
-
-    return {
-      x: clampValue(nextPan.x, -limitX, limitX),
-      y: clampValue(nextPan.y, -limitY, limitY),
-    };
-  };
-
-  const zoomAtPoint = (nextZoom: number, clientX: number, clientY: number) => {
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      setMapZoom(nextZoom);
-      return;
-    }
-
-    const rect = viewport.getBoundingClientRect();
-    const localX = clientX - rect.left;
-    const localY = clientY - rect.top;
-    const worldX = (localX - mapPan.x) / mapZoom;
-    const worldY = (localY - mapPan.y) / mapZoom;
-    const rawPan = {
-      x: localX - worldX * nextZoom,
-      y: localY - worldY * nextZoom,
-    };
-
-    setMapZoom(nextZoom);
-    setMapPan(clampPanToViewport(rawPan, nextZoom));
-  };
-
-  const resetMapView = () => {
-    setMapZoom(INITIAL_MAP_ZOOM);
-    setMapPan({ x: 0, y: 0 });
-  };
-
-  const zoomByButton = (direction: -1 | 1) => {
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      return;
-    }
-    const rect = viewport.getBoundingClientRect();
-    const targetZoom = clampValue(
-      mapZoom + direction * ZOOM_STEP,
-      MIN_MAP_ZOOM,
-      MAX_MAP_ZOOM,
-    );
-    zoomAtPoint(targetZoom, rect.left + rect.width / 2, rect.top + rect.height / 2);
-  };
-
-  const handleMapWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const targetZoom = clampValue(
-      mapZoom + -event.deltaY * 0.0011,
-      MIN_MAP_ZOOM,
-      MAX_MAP_ZOOM,
-    );
-    zoomAtPoint(targetZoom, event.clientX, event.clientY);
-  };
-
-  const stopPanning = (pointerId?: number) => {
-    const viewport = viewportRef.current;
-    if (
-      viewport &&
-      typeof pointerId === "number" &&
-      viewport.hasPointerCapture(pointerId)
-    ) {
-      viewport.releasePointerCapture(pointerId);
-    }
-    panStartRef.current = null;
-    setIsPanning(false);
-  };
-
-  const handleMapPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "mouse" && event.button !== 0) {
-      return;
-    }
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      return;
-    }
-    panStartRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      startPanX: mapPan.x,
-      startPanY: mapPan.y,
-    };
-    viewport.setPointerCapture(event.pointerId);
-    setIsPanning(true);
-  };
-
-  const handleMapPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const panSession = panStartRef.current;
-    if (!panSession || panSession.pointerId !== event.pointerId) {
-      return;
-    }
-    const rawPan = {
-      x: panSession.startPanX + (event.clientX - panSession.startX),
-      y: panSession.startPanY + (event.clientY - panSession.startY),
-    };
-    setMapPan(clampPanToViewport(rawPan, mapZoom));
-  };
-
-  const handleMapPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (panStartRef.current?.pointerId !== event.pointerId) {
-      return;
-    }
-    stopPanning(event.pointerId);
-  };
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
-    if (isMapExpanded || isBrowserFullscreen) {
+    if (isMapExpanded) {
       document.body.style.overflow = "hidden";
     }
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isMapExpanded, isBrowserFullscreen]);
+  }, [isMapExpanded]);
 
   useEffect(() => {
-    const onFullscreenChange = () => {
-      const isFullscreen = document.fullscreenElement === mapShellRef.current;
-      setIsBrowserFullscreen(isFullscreen);
-      if (!isFullscreen) {
-        setIsMapExpanded(false);
-      } else {
-        setIsMapExpanded(true);
-      }
-    };
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", onFullscreenChange);
-  }, []);
-
-  useEffect(() => {
-    if (!isMapExpanded || isBrowserFullscreen) {
+    if (!isMapExpanded) {
       return;
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -536,52 +374,19 @@ export default function Home() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isMapExpanded, isBrowserFullscreen]);
+  }, [isMapExpanded]);
 
   const handleProcessSelect = (nextProcess: ProcessId) => {
     setActiveProcess(nextProcess);
     setActiveStep(0);
-    resetMapView();
   };
 
-  const setMapExpandedWithTransition = (nextState: boolean) => {
-    const transitionDocument = document as Document & {
-      startViewTransition?: (updateCallback: () => void) => void;
-    };
-    if (transitionDocument.startViewTransition) {
-      transitionDocument.startViewTransition(() => {
-        setIsMapExpanded(nextState);
-      });
-      return;
-    }
-    setIsMapExpanded(nextState);
+  const closeMap = () => {
+    setIsMapExpanded(false);
   };
 
-  const closeMap = async () => {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      return;
-    }
-    setMapExpandedWithTransition(false);
-  };
-
-  const toggleImmersiveFullscreen = async () => {
-    const mapShell = mapShellRef.current;
-    if (!mapShell) {
-      return;
-    }
-    if (document.fullscreenElement === mapShell) {
-      await document.exitFullscreen();
-      return;
-    }
-    setMapExpandedWithTransition(true);
-    if (mapShell.requestFullscreen) {
-      try {
-        await mapShell.requestFullscreen();
-      } catch {
-        setIsBrowserFullscreen(false);
-      }
-    }
+  const toggleImmersiveFullscreen = () => {
+    setIsMapExpanded((current) => !current);
   };
 
   const moveStep = (direction: -1 | 1) => {
@@ -677,32 +482,29 @@ export default function Home() {
         <button
           type="button"
           className={`space-backdrop ${isMapExpanded ? "active" : ""}`}
-          onClick={() => {
-            void closeMap();
-          }}
+          onClick={closeMap}
           aria-label="Close full screen map"
           tabIndex={isMapExpanded ? 0 : -1}
         />
 
-        <div
-          ref={mapShellRef}
-          className={`space-map-shell ${isMapExpanded ? "is-fullscreen" : ""}`}
-        >
+        <div className={`space-map-shell ${isMapExpanded ? "is-fullscreen" : ""}`}>
           <div className={`space-diagram ${isMapExpanded ? "is-fullscreen" : ""}`}>
             <div className="diagram-label">
               <div className="diagram-label-group">
-                <span className="diagram-chip">{currentProcess.badge}</span>
-                <p>Space map: all steps connect in one path.</p>
+                <p className="diagram-title">Diagram for {currentProcess.label}</p>
+                <p>
+                  {isMapExpanded
+                    ? "Click any point to jump to that step."
+                    : 'If you say "diagram for ..." then your own engineering design process or scientific method can fit this map too.'}
+                </p>
               </div>
               <button
                 type="button"
                 className="map-mode-btn"
-                onClick={() => {
-                  void toggleImmersiveFullscreen();
-                }}
+                onClick={toggleImmersiveFullscreen}
                 aria-label={
-                  isBrowserFullscreen
-                    ? "Exit full screen space map"
+                  isMapExpanded
+                    ? "Exit immersive full screen map"
                     : "Open immersive full screen map"
                 }
               >
@@ -712,7 +514,7 @@ export default function Home() {
                   aria-hidden="true"
                   focusable="false"
                 >
-                  {isBrowserFullscreen ? (
+                  {isMapExpanded ? (
                     <path
                       d="M10 4H4v6M14 4h6v6M10 20H4v-6M14 20h6v-6"
                       fill="none"
@@ -732,20 +534,11 @@ export default function Home() {
                     />
                   )}
                 </svg>
-                <span>{isBrowserFullscreen ? "Exit immersive" : "Immersive"}</span>
+                <span>{isMapExpanded ? "Exit immersive" : "Immersive"}</span>
               </button>
             </div>
-            <div
-              ref={viewportRef}
-              className={`space-viewport ${isPanning ? "is-panning" : ""}`}
-              onWheel={handleMapWheel}
-              onPointerDown={handleMapPointerDown}
-              onPointerMove={handleMapPointerMove}
-              onPointerUp={handleMapPointerUp}
-              onPointerCancel={handleMapPointerUp}
-              onPointerLeave={handleMapPointerUp}
-            >
-              <div className="space-canvas" style={mapTransformStyle}>
+            <div className="space-viewport">
+              <div className="space-canvas" style={mapViewStyle}>
                 <span
                   className="space-focus"
                   style={{
@@ -777,13 +570,13 @@ export default function Home() {
                     className="space-tracker-ring"
                     cx={trackerPoint.x}
                     cy={trackerPoint.y}
-                    r="1.85"
+                    r="1.25"
                   />
                   <circle
                     className="space-tracker-dot"
                     cx={trackerPoint.x}
                     cy={trackerPoint.y}
-                    r="0.76"
+                    r="0.52"
                   />
                 </svg>
                 <ol className="space-nodes">
@@ -823,34 +616,6 @@ export default function Home() {
                 </ol>
               </div>
             </div>
-            <div className="map-controls" role="group" aria-label="Map zoom controls">
-              <button
-                type="button"
-                className="map-mini-btn"
-                onClick={() => zoomByButton(-1)}
-                aria-label="Zoom out"
-              >
-                -
-              </button>
-              <button
-                type="button"
-                className="map-mini-btn"
-                onClick={() => zoomByButton(1)}
-                aria-label="Zoom in"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                className="map-mini-btn reset"
-                onClick={resetMapView}
-                aria-label="Reset map view"
-              >
-                Reset
-              </button>
-              <span className="map-zoom-readout">{Math.round(mapZoom * 100)}%</span>
-            </div>
-            <p className="map-hint">Drag to move · Scroll to zoom</p>
           </div>
         </div>
 
