@@ -358,10 +358,10 @@ button:focus-visible {
 }
 
 .process-layout.map-open .detail-panel {
-  opacity: 0.24;
+  opacity: 0;
   pointer-events: none;
-  transform: scale(0.98);
-  filter: blur(1.2px);
+  transform: scale(0.94);
+  filter: blur(3px);
 }
 
 .space-backdrop {
@@ -370,8 +370,12 @@ button:focus-visible {
   border: 0;
   margin: 0;
   padding: 0;
-  background: rgba(6, 18, 31, 0.55);
-  backdrop-filter: blur(6px);
+  background: linear-gradient(
+    180deg,
+    rgba(1, 9, 20, 0.88) 0%,
+    rgba(1, 16, 30, 0.92) 100%
+  );
+  backdrop-filter: blur(10px);
   opacity: 0;
   pointer-events: none;
   transition: opacity 440ms ease;
@@ -392,7 +396,7 @@ button:focus-visible {
 
 .space-map-shell.is-fullscreen {
   position: fixed;
-  inset: clamp(0.65rem, 1.7vw, 1.35rem);
+  inset: 0;
   z-index: 110;
 }
 
@@ -402,15 +406,15 @@ button:focus-visible {
   flex-direction: column;
   gap: 0.7rem;
   view-transition-name: space-map;
-  border: 1px solid #d6e5df;
+  border: 1px solid rgba(59, 130, 246, 0.32);
   border-radius: 24px;
   padding: 0.85rem 0.9rem 0.95rem;
   background: linear-gradient(
     165deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(238, 251, 246, 0.7) 100%
+    rgba(7, 24, 42, 0.9) 0%,
+    rgba(8, 35, 54, 0.85) 100%
   );
-  box-shadow: 0 12px 32px rgba(16, 47, 52, 0.1);
+  box-shadow: 0 12px 32px rgba(3, 10, 24, 0.42);
   overflow: hidden;
   transition:
     border-radius 520ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -421,9 +425,10 @@ button:focus-visible {
 .space-diagram.is-fullscreen {
   height: 100%;
   min-height: 100%;
-  border-radius: 30px;
-  padding: 1rem 1.08rem 1.15rem;
-  box-shadow: 0 24px 70px rgba(4, 13, 28, 0.5);
+  border-radius: 0;
+  border: none;
+  padding: 1rem 1.15rem 1.35rem;
+  box-shadow: none;
 }
 
 .space-diagram::before {
@@ -431,9 +436,9 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 13% 22%, rgba(56, 189, 248, 0.2) 0%, transparent 38%),
-    radial-gradient(circle at 87% 14%, rgba(45, 212, 191, 0.2) 0%, transparent 36%),
-    linear-gradient(180deg, rgba(4, 20, 34, 0.22) 0%, rgba(8, 30, 45, 0.06) 100%);
+    radial-gradient(circle at 13% 22%, rgba(56, 189, 248, 0.24) 0%, transparent 38%),
+    radial-gradient(circle at 87% 14%, rgba(45, 212, 191, 0.21) 0%, transparent 36%),
+    linear-gradient(180deg, rgba(2, 11, 24, 0.18) 0%, rgba(3, 15, 28, 0.08) 100%);
   pointer-events: none;
 }
 
@@ -463,8 +468,8 @@ button:focus-visible {
 
 .space-map-shell.is-fullscreen .space-viewport {
   flex: 1;
-  width: min(100%, calc((100vh - 9.2rem) * 1.785714));
-  max-height: calc(100vh - 9.2rem);
+  width: 100%;
+  max-height: calc(100vh - 5.8rem);
   margin-inline: auto;
 }
 
@@ -472,7 +477,7 @@ button:focus-visible {
   position: relative;
   width: 100%;
   height: 100%;
-  --map-scale: 1.03;
+  --map-scale: 0.9;
   transform-origin: var(--focus-x) var(--focus-y);
   transform: scale(var(--map-scale));
   transition:
@@ -481,7 +486,7 @@ button:focus-visible {
 }
 
 .space-map-shell.is-fullscreen .space-canvas {
-  --map-scale: 1.17;
+  --map-scale: 1.02;
 }
 
 .space-canvas::before {
@@ -515,7 +520,7 @@ button:focus-visible {
 
 .space-focus {
   position: absolute;
-  width: 14rem;
+  width: 10.5rem;
   aspect-ratio: 1 / 1;
   border-radius: 999px;
   transform: translate(-50%, -50%);
@@ -543,14 +548,14 @@ button:focus-visible {
 
 .space-link-base {
   fill: none;
-  stroke: rgba(170, 209, 232, 0.3);
-  stroke-width: 0.78;
+  stroke: rgba(170, 209, 232, 0.24);
+  stroke-width: 0.68;
 }
 
 .space-link-progress {
   fill: none;
   stroke: url(#spaceLinkGradient);
-  stroke-width: 1.2;
+  stroke-width: 0.82;
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: stroke-dasharray 620ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -560,8 +565,8 @@ button:focus-visible {
 .space-tracker-dot {
   fill: #ffffff;
   stroke: #67e8f9;
-  stroke-width: 1.2;
-  filter: drop-shadow(0 0 7px rgba(103, 232, 249, 0.74));
+  stroke-width: 0.85;
+  filter: drop-shadow(0 0 5px rgba(103, 232, 249, 0.74));
   transition:
     cx 460ms cubic-bezier(0.22, 1, 0.36, 1),
     cy 460ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -570,7 +575,7 @@ button:focus-visible {
 .space-tracker-pulse {
   fill: rgba(56, 189, 248, 0.16);
   stroke: rgba(56, 189, 248, 0.44);
-  stroke-width: 0.62;
+  stroke-width: 0.42;
   animation: tracker-pulse 1.9s ease-in-out infinite;
   transition:
     cx 460ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -715,9 +720,9 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  background: #d6f8f2;
-  color: #0f645d;
-  border: 1px solid #afe3d6;
+  background: rgba(45, 212, 191, 0.16);
+  color: #a7f3d0;
+  border: 1px solid rgba(45, 212, 191, 0.35);
   font-family: var(--font-jet-mono), monospace;
   font-size: 0.7rem;
   letter-spacing: 0.03em;
@@ -726,17 +731,17 @@ button:focus-visible {
 
 .diagram-label p {
   margin: 0;
-  color: #43626a;
+  color: #95b8ca;
   font-size: 0.78rem;
   line-height: 1.35;
 }
 
 .map-mode-btn {
-  border: 1px solid #bfd8cf;
+  border: 1px solid rgba(125, 196, 216, 0.4);
   border-radius: 999px;
   padding: 0.35rem 0.62rem;
-  background: rgba(247, 255, 252, 0.92);
-  color: #114842;
+  background: rgba(10, 37, 59, 0.8);
+  color: #d8f6ff;
   display: inline-flex;
   align-items: center;
   gap: 0.36rem;
@@ -753,8 +758,8 @@ button:focus-visible {
 
 .map-mode-btn:hover {
   transform: translateY(-2px);
-  border-color: #95c7ba;
-  background: #f1fdf8;
+  border-color: rgba(103, 232, 249, 0.62);
+  background: rgba(11, 47, 73, 0.92);
 }
 
 .mode-icon {
@@ -1111,7 +1116,7 @@ button:focus-visible {
   }
 
   .space-canvas {
-    --map-scale: 1;
+    --map-scale: 0.9;
   }
 
   .space-focus {

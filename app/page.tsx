@@ -587,13 +587,13 @@ export default function Home() {
                     className="space-tracker-pulse"
                     cx={trackerPoint.x}
                     cy={trackerPoint.y}
-                    r="4.3"
+                    r="2.45"
                   />
                   <circle
                     className="space-tracker-dot"
                     cx={trackerPoint.x}
                     cy={trackerPoint.y}
-                    r="2.15"
+                    r="1.1"
                   />
                 </svg>
                 <ol className="space-nodes">
