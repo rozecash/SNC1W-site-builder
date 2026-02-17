@@ -323,9 +323,24 @@ export default function Home() {
 
   const currentProcess = processData[activeProcess];
   const step = currentProcess.steps[activeStep];
+  const diagramPoints = [
+    { x: 12, y: 28, col: 1, row: 1 },
+    { x: 37, y: 28, col: 2, row: 1 },
+    { x: 62, y: 28, col: 3, row: 1 },
+    { x: 87, y: 28, col: 4, row: 1 },
+    { x: 87, y: 72, col: 4, row: 2 },
+    { x: 62, y: 72, col: 3, row: 2 },
+    { x: 37, y: 72, col: 2, row: 2 },
+    { x: 12, y: 72, col: 1, row: 2 },
+  ] as const;
   const progress = Math.round(
     ((activeStep + 1) / currentProcess.steps.length) * 100,
   );
+  const lineProgress =
+    currentProcess.steps.length > 1
+      ? (activeStep / (currentProcess.steps.length - 1)) * 100
+      : 0;
+  const trackerPoint = diagramPoints[activeStep] ?? diagramPoints[0];
 
   const handleProcessSelect = (nextProcess: ProcessId) => {
     setActiveProcess(nextProcess);
@@ -422,17 +437,65 @@ export default function Home() {
       </section>
 
       <section className="process-layout">
-        <ol className="step-grid">
+        <div className="step-diagram">
+          <div className="diagram-label">
+            <span className="diagram-chip">{currentProcess.badge}</span>
+            <p>Click any node to jump to that step.</p>
+          </div>
+          <svg
+            className="diagram-lines"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path
+              className="diagram-line-base"
+              d="M12 28 L37 28 L62 28 L87 28 L87 72 L62 72 L37 72 L12 72"
+              pathLength={100}
+            />
+            <path
+              className="diagram-line-progress"
+              d="M12 28 L37 28 L62 28 L87 28 L87 72 L62 72 L37 72 L12 72"
+              pathLength={100}
+              style={{ strokeDasharray: `${lineProgress} 100` }}
+            />
+            <circle
+              className="diagram-tracker-pulse"
+              cx={trackerPoint.x}
+              cy={trackerPoint.y}
+              r="4"
+            />
+            <circle
+              className="diagram-tracker-dot"
+              cx={trackerPoint.x}
+              cy={trackerPoint.y}
+              r="2.1"
+            />
+          </svg>
+          <ol className="step-grid diagram-grid">
           {currentProcess.steps.map((item, index) => {
             const isActive = activeStep === index;
+            const isDone = index < activeStep;
+            const placement = diagramPoints[index] ?? {
+              x: 12,
+              y: 28,
+              col: (index % 4) + 1,
+              row: Math.floor(index / 4) + 1,
+            };
 
             return (
-              <li key={item.title}>
+              <li
+                key={item.title}
+                style={{
+                  gridColumn: placement.col,
+                  gridRow: placement.row,
+                  animationDelay: `${index * 80}ms`,
+                }}
+              >
                 <button
                   type="button"
-                  className={`step-card ${isActive ? "active" : ""}`}
+                  className={`step-card ${isActive ? "active" : ""} ${isDone ? "done" : ""}`}
                   onClick={() => setActiveStep(index)}
-                  style={{ animationDelay: `${index * 80}ms` }}
                   aria-pressed={isActive}
                 >
                   <span className="step-icon">
@@ -449,7 +512,8 @@ export default function Home() {
               </li>
             );
           })}
-        </ol>
+          </ol>
+        </div>
 
         <article className="detail-panel" key={`${activeProcess}-${activeStep}`}>
           <p className="detail-kicker">Current Step</p>
