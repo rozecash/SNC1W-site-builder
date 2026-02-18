@@ -166,9 +166,9 @@ const processData: Record<ProcessId, ProcessContent> = {
       points: [
         "One brand looks like it absorbs more.",
         "Question: Which brand absorbs more per sheet?",
-        "Prediction: Brand A will absorb more than Brand B.",
+        "Hypothesis: Brand A will absorb more than Brand B.",
         "Test both with the same sheet size and water amount.",
-        "Compare data and accept or reject the prediction.",
+        "Compare data and accept or reject the hypothesis.",
         "Share the final answer and test steps.",
       ],
     },
@@ -176,6 +176,49 @@ const processData: Record<ProcessId, ProcessContent> = {
 };
 
 const processOrder: ProcessId[] = ["engineering", "scientific"];
+const diagramThemes: Record<
+  ProcessId,
+  {
+    points: readonly { x: number; y: number }[];
+    previewScale: string;
+    fullscreenScale: string;
+    gradient: readonly [string, string, string];
+    className: string;
+  }
+> = {
+  engineering: {
+    points: [
+      { x: 14, y: 36 },
+      { x: 30, y: 17 },
+      { x: 50, y: 20 },
+      { x: 69, y: 14 },
+      { x: 84, y: 30 },
+      { x: 79, y: 49 },
+      { x: 58, y: 55 },
+      { x: 34, y: 50 },
+    ] as const,
+    previewScale: "0.75",
+    fullscreenScale: "0.8",
+    gradient: ["#34d399", "#22d3ee", "#60a5fa"] as const,
+    className: "theme-engineering",
+  },
+  scientific: {
+    points: [
+      { x: 21, y: 22 },
+      { x: 39, y: 13 },
+      { x: 62, y: 15 },
+      { x: 79, y: 30 },
+      { x: 74, y: 48 },
+      { x: 56, y: 55 },
+      { x: 34, y: 50 },
+      { x: 19, y: 36 },
+    ] as const,
+    previewScale: "0.76",
+    fullscreenScale: "0.81",
+    gradient: ["#60a5fa", "#38bdf8", "#f59e0b"] as const,
+    className: "theme-scientific",
+  },
+};
 
 function Icon({ name }: { name: IconName }) {
   const sharedProps = {
@@ -323,18 +366,10 @@ export default function Home() {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
 
   const currentProcess = processData[activeProcess];
+  const currentDiagramTheme = diagramThemes[activeProcess];
   const step = currentProcess.steps[activeStep];
   const mapHeight = 60;
-  const diagramPoints = [
-    { x: 15, y: 33 },
-    { x: 30, y: 15 },
-    { x: 50, y: 12 },
-    { x: 70, y: 17 },
-    { x: 85, y: 33 },
-    { x: 72, y: 49 },
-    { x: 50, y: 55 },
-    { x: 28, y: 49 },
-  ] as const;
+  const diagramPoints = currentDiagramTheme.points;
   const getTopPercent = (y: number) => (y / mapHeight) * 100;
   const spacePath = diagramPoints
     .map((point, index) =>
@@ -350,7 +385,9 @@ export default function Home() {
       : 0;
   const trackerPoint = diagramPoints[activeStep] ?? diagramPoints[0];
   const mapViewStyle = {
-    "--map-scale": isMapExpanded ? "0.8" : "0.78",
+    "--map-scale": isMapExpanded
+      ? currentDiagramTheme.fullscreenScale
+      : currentDiagramTheme.previewScale,
   } as CSSProperties;
 
   useEffect(() => {
@@ -403,10 +440,7 @@ export default function Home() {
         <div className="hero">
           <p className="eyebrow">Interactive Infographic</p>
           <h1>Scientific Method + Engineering Design Process</h1>
-          <p>
-            Quick side-by-side guide. Click through each step and present both
-            methods in about 2 minutes.
-          </p>
+          <p>A quick guide.</p>
           <div className="stat-strip">
             <article className="stat-chip">
               <span className="chip-icon">
@@ -415,15 +449,6 @@ export default function Home() {
               <div>
                 <strong>16 total steps</strong>
                 <small>8 in each method</small>
-              </div>
-            </article>
-            <article className="stat-chip">
-              <span className="chip-icon">
-                <Icon name="shield" />
-              </span>
-              <div>
-                <strong>Simple to present</strong>
-                <small>Clear talking points</small>
               </div>
             </article>
           </div>
@@ -488,15 +513,13 @@ export default function Home() {
         />
 
         <div className={`space-map-shell ${isMapExpanded ? "is-fullscreen" : ""}`}>
-          <div className={`space-diagram ${isMapExpanded ? "is-fullscreen" : ""}`}>
+          <div
+            className={`space-diagram ${currentDiagramTheme.className} ${isMapExpanded ? "is-fullscreen" : ""}`}
+          >
             <div className="diagram-label">
               <div className="diagram-label-group">
                 <p className="diagram-title">Diagram for {currentProcess.label}</p>
-                <p>
-                  {isMapExpanded
-                    ? "Click any point to jump to that step."
-                    : 'If you say "diagram for ..." then your own engineering design process or scientific method can fit this map too.'}
-                </p>
+                <p>Click any point to jump to that step.</p>
               </div>
               <button
                 type="button"
@@ -554,9 +577,9 @@ export default function Home() {
                 >
                   <defs>
                     <linearGradient id="spaceLinkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#34d399" />
-                      <stop offset="52%" stopColor="#22d3ee" />
-                      <stop offset="100%" stopColor="#60a5fa" />
+                      <stop offset="0%" stopColor={currentDiagramTheme.gradient[0]} />
+                      <stop offset="52%" stopColor={currentDiagramTheme.gradient[1]} />
+                      <stop offset="100%" stopColor={currentDiagramTheme.gradient[2]} />
                     </linearGradient>
                   </defs>
                   <path className="space-link-base" d={spacePath} pathLength={100} />
